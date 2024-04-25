@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# Get current user ID
+USER_ID=$(id -u)
+
+# Timestamp
+TIMESTAMP=$(date +%F-%H-%M-%S)
+FILENAME=$(basename "$0" .sh)
+LOGFILE="/tmp/$FILENAME-$TIMESTAMP.log"
+
+# Colors
+RED='\e[0;31m'
+GREEN='\e[0;32m'
+YELLOW='\e[0;33m'
+BLUE='\e[0;34m'
+NC='\e[0m'
+
+# Function to print status message
+status() {
+    if [ $1 -ne 0 ]; then
+        echo -e "${BLUE}$2${NC} installation... ${RED}failed${NC}" | tee -a "$LOGFILE"
+        exit 1
+    else
+        echo -e "${BLUE}$2${NC} installation... ${GREEN}succeeded${NC}" | tee -a "$LOGFILE"
+    fi
+}
+
+# Check if script is run with superuser privileges
+if [ $USER_ID -ne 0 ]; then
+    echo -e "${RED}Please run with sudo or as root.${NC}" | tee -a "$LOGFILE"
+    exit 1
+else
+    echo -e "${GREEN}You are the superuser.${NC} Continuing with the installation." | tee -a "$LOGFILE"
+fi
+
+# Validate input parameter for application to install
+if [ -z "$1" ]; then
+    echo -e "${RED}Usage: $0 <application>${NC}" | tee -a "$LOGFILE"
+    exit 1
+fi
+echo "enter which application you want to install"
+APPLICATION="$1"
+
+# Check if MySQL is already installed
+if dnf list installed | grep -q -i "$APPLICATION"; then
+    echo -e "${GREEN}$APPLICATION${NC} is already installed." | tee -a "$LOGFILE"
+    exit 0
+else
+    echo -e "${RED}$APPLICATION${NC} needs to be installed." | tee -a "$LOGFILE"
+fi
+
+# Install MySQL server
+dnf install "$APPLICATION" -y &>>"$LOGFILE"
+status $? "Installing $APPLICATION"
+
+# Enable and start MySQL service
+systemctl enable mysqld &>>"$LOGFILE"
+status $? "Enabling $APPLICATION"
+
+systemctl start mysqld &>>"$LOGFILE"
+status $? "Starting $APPLICATION"
+
+# Secure MySQL installation
+mysql_secure_installation --set-root-pass ExpenseApp@1 &>>"$LOGFILE"
+status $? "Securing MySQL installation"
