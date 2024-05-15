@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Check if a file is provided as an argument
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <text_file>"
+    exit 1
+fi
+
+# Check if the file exists
+if [ ! -f "$1" ]; then
+    echo "File '$1' not found."
+    exit 1
+fi
+
+# Read the text file and count word occurrences
+declare -A word_count
+while read -r line; do
+    # Remove punctuation, convert to lowercase, and split into words
+    words=$(echo "$line" | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]' | tr -s ' ' '\n')
+    for word in $words; do
+        # Increment count for each word
+        ((word_count["$word"]++))
+    done
+done < "$1"
+
+# Display the top 5 most frequent words
+echo "Top 5 most frequent words:"
+# Sort the words by count in descending order and display the top 5
+for word in "${!word_count[@]}"; do
+    printf "%-20s %s\n" "$word:" "${word_count[$word]}"
+done | sort -rn -k2 | head -n5
