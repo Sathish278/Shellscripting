@@ -1,0 +1,40 @@
+---
+- name: Deploy PHP Example application stack
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Create network for the application
+      docker_network:
+        name: app_network
+
+    - name: Deploy MySQL database container
+      docker_container:
+        name: db
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: app_db
+          MYSQL_USER: app_user
+          MYSQL_PASSWORD: app_pass
+        networks:
+          - name: app_network
+        ports:
+          - "3306:3306"
+        restart_policy: always
+
+    - name: Deploy PHP application container
+      docker_container:
+        name: web
+        image: problemsetters/801133-ansible
+        networks:
+          - name: app_network
+        ports:
+          - "8000:80"
+        restart_policy: always
+        links:
+          - db:mysql
+        env:
+          DB_HOST: db
+          DB_NAME: app_db
+          DB_USER: app_user
+          DB_PASSWORD: app_pass
