@@ -1,3 +1,4 @@
+---
 - name: Deploy PHP Example App using Docker containers
   hosts: localhost
   become: yes
@@ -9,19 +10,18 @@
         state: started
         restart_policy: always
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: example
-          MYSQL_USER: user
-          MYSQL_PASSWORD: password
+          MYSQL_DATABASE: "example"
+          MYSQL_USER: "user"
+          MYSQL_PASSWORD: "password"
+          MYSQL_ROOT_PASSWORD: "password"
         ports:
           - "3306:3306"
 
     - name: Wait for DB to initialize
       ansible.builtin.wait_for:
+        host: "127.0.0.1"
         port: 3306
-        host: 127.0.0.1
-        delay: 10
-        timeout: 60
+        timeout: 30
 
     - name: Start PHP Web container
       community.docker.docker_container:
@@ -32,10 +32,10 @@
         ports:
           - "8000:80"
         env:
-          DB_HOST: db
-          DB_PORT: 3306
-          DB_NAME: example
-          DB_USER: user
-          DB_PASSWORD: password
+          DB_HOST: "db"
+          DB_PORT: "3306"
+          DB_NAME: "example"
+          DB_USER: "user"
+          DB_PASSWORD: "password"
         links:
           - db
