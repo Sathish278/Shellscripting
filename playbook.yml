@@ -1,40 +1,44 @@
----
-- name: Deploy PHP Example application stack
+- name: Deploy Application Stack as Docker Containers
   hosts: localhost
   become: yes
   tasks:
-    - name: Create network for the application
-      docker_network:
-        name: app_network
 
-    - name: Deploy MySQL database container
+    - name: Ensure Docker is installed
+      package:
+        name: docker.io
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull the application image
+      docker_image:
+        name: problemsetters/801133-ansible
+        source: pull
+
+    - name: Run the DB container
       docker_container:
-        name: db
-        image: mysql:5.7
+        name: app_db
+        image: problemsetters/801133-ansible
+        state: started
+        detach: true
         env:
-          MYSQL_ROOT_PASSWORD: rootpass
-          MYSQL_DATABASE: app_db
-          MYSQL_USER: app_user
-          MYSQL_PASSWORD: app_pass
-        networks:
-          - name: app_network
-        ports:
-          - "3306:3306"
+          APP_MODE: db
         restart_policy: always
 
-    - name: Deploy PHP application container
+    - name: Run the Web container
       docker_container:
-        name: web
+        name: app_web
         image: problemsetters/801133-ansible
-        networks:
-          - name: app_network
-        ports:
-          - "8000:80"
+        state: started
+        detach: true
+        published_ports:
+          - "8000:8000"
+        env:
+          APP_MODE: web
         restart_policy: always
         links:
-          - db:mysql
-        env:
-          DB_HOST: db
-          DB_NAME: app_db
-          DB_USER: app_user
-          DB_PASSWORD: app_pass
+          - app_db
