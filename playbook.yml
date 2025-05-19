@@ -1,70 +1,28 @@
-- name: Deploy Application Stack as Docker Containers
+---
+- name: Deploy web and db containers
   hosts: localhost
-  become: yes
+  become: false
   tasks:
-
-    - name: Install prerequisites
-      apt:
-        name:
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - gnupg-agent
-          - software-properties-common
-        state: present
-        update_cache: yes
-
-    - name: Add Docker's official GPG key
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
-
-    - name: Add Docker APT repository
-      apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
-        state: present
-        filename: docker
-
-    - name: Update apt and install Docker
-      apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-        state: present
-        update_cache: yes
-
-    - name: Start Docker service
-      service:
-        name: docker
-        state: started
-        enabled: yes
-
-    - name: Pull the application image
-      docker_image:
-        name: problemsetters/801133-ansible
-        source: pull
-
-    - name: Run the DB container
+    - name: Deploy DB container
       docker_container:
-        name: app_db
-        image: problemsetters/801133-ansible
+        name: mydb
+        image: postgres:latest
         state: started
-        detach: true
         env:
-          APP_MODE: db
-        restart_policy: always
+          POSTGRES_PASSWORD: example
+        ports:
+          - "5432:5432"
 
-    - name: Run the Web container
+    - name: Deploy Web container
       docker_container:
-        name: app_web
-        image: problemsetters/801133-ansible
+        name: myweb
+        image: nginx:latest
         state: started
-        detach: true
-        published_ports:
-          - "8000:8000"
-        env:
-          APP_MODE: web
-        restart_policy: always
-        links:
-          - app_db
+        ports:
+          - "8080:80"
+
+    - name: Wait for Web to respond
+      uri:
+        url: http://localhost:8080
+        status_code: 200
+        return_content: no
