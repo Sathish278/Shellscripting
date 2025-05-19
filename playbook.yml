@@ -1,3 +1,4 @@
+
 ---
 - name: Deploy PHP Example application stack
   hosts: localhost
@@ -13,6 +14,19 @@
     docker_network:
       name: php_example_net
 
+  - name: Start the db container
+    docker_container:
+      name: db
+      image: mysql:5.7
+      env:
+        MYSQL_ROOT_PASSWORD: example
+        MYSQL_DATABASE: example
+        MYSQL_USER: example
+        MYSQL_PASSWORD: example
+      networks:
+        - name: php_example_net
+      state: started
+
   - name: Start the web container
     docker_container:
       name: web
@@ -21,17 +35,4 @@
         - "8000:80"
       networks:
         - name: php_example_net
-      state: started
-
-  - name: Start the db container
-    docker_container:
-      name: db
-      image: mysql:5.7
-    env:
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_DATABASE: example
-      MYSQL_USER: example
-      MYSQL_PASSWORD: example
-    networks:
-      - name: php_example_net
-    state: started
+      state: started
