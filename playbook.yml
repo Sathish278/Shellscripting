@@ -1,41 +1,37 @@
 ---
-- name: Deploy PHP Example App using Docker containers
+- name: Deploy PHP Example application stack
   hosts: localhost
   become: yes
+
   tasks:
-    - name: Start DB container
-      community.docker.docker_container:
-        name: db
-        image: mysql:5.7
-        state: started
-        restart_policy: always
-        env:
-          MYSQL_DATABASE: "example"
-          MYSQL_USER: "user"
-          MYSQL_PASSWORD: "password"
-          MYSQL_ROOT_PASSWORD: "password"
-        ports:
-          - "3306:3306"
+  - name: Pull the PHP Example image
+    docker_image:
+      name: problemsetters/801133-ansible
+      source: pull
 
-    - name: Wait for DB to initialize
-      ansible.builtin.wait_for:
-        host: "127.0.0.1"
-        port: 3306
-        timeout: 30
+  - name: Create a network for the application
+    docker_network:
+      name: php_example_net
 
-    - name: Start PHP Web container
-      community.docker.docker_container:
-        name: web
-        image: problemsetters/801133-ansible
-        state: started
-        restart_policy: always
-        ports:
-          - "8000:80"
-        env:
-          DB_HOST: "db"
-          DB_PORT: "3306"
-          DB_NAME: "example"
-          DB_USER: "user"
-          DB_PASSWORD: "password"
-        links:
-          - db
+  - name: Start the web container
+    docker_container:
+      name: web
+      image: problemsetters/801133-ansible
+      ports:
+        - "8000:80"
+      networks:
+        - name: php_example_net
+      state: started
+
+  - name: Start the db container
+    docker_container:
+      name: db
+      image: mysql:5.7
+	  env:
+        MYSQL_ROOT_PASSWORD: example
+        MYSQL_DATABASE: example
+        MYSQL_USER: example
+        MYSQL_PASSWORD: example
+      networks:
+        - name: php_example_net
+      state: started
