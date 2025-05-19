@@ -1,4 +1,3 @@
-
 ---
 - name: Deploy PHP Example application stack
   hosts: localhost
@@ -35,4 +34,4 @@
         - "8000:80"
       networks:
         - name: php_example_net
-      state: started
+      state: started
