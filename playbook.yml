@@ -1,28 +1,41 @@
----
-- name: Deploy web and db containers
+- name: Deploy PHP Example App using Docker containers
   hosts: localhost
-  become: false
+  become: yes
   tasks:
-    - name: Deploy DB container
-      docker_container:
-        name: mydb
-        image: postgres:latest
+    - name: Start DB container
+      community.docker.docker_container:
+        name: db
+        image: mysql:5.7
         state: started
+        restart_policy: always
         env:
-          POSTGRES_PASSWORD: example
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: example
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password
         ports:
-          - "5432:5432"
+          - "3306:3306"
 
-    - name: Deploy Web container
-      docker_container:
-        name: myweb
-        image: nginx:latest
+    - name: Wait for DB to initialize
+      ansible.builtin.wait_for:
+        port: 3306
+        host: 127.0.0.1
+        delay: 10
+        timeout: 60
+
+    - name: Start PHP Web container
+      community.docker.docker_container:
+        name: web
+        image: problemsetters/801133-ansible
         state: started
+        restart_policy: always
         ports:
-          - "8080:80"
-
-    - name: Wait for Web to respond
-      uri:
-        url: http://localhost:8080
-        status_code: 200
-        return_content: no
+          - "8000:80"
+        env:
+          DB_HOST: db
+          DB_PORT: 3306
+          DB_NAME: example
+          DB_USER: user
+          DB_PASSWORD: password
+        links:
+          - db
