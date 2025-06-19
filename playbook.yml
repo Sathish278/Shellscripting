@@ -1,37 +1,40 @@
 ---
-- name: Deploy PHP Example application stack
-  hosts: localhost
-  become: yes
+- hosts: localhost
+  become: true
+  gather_facts: false
 
   tasks:
-  - name: Pull the PHP Example image
-    docker_image:
-      name: problemsetters/801133-ansible
-      source: pull
+    - name: Ensure hackerboard user exists
+      user:
+        name: hackerboard
 
-  - name: Create a network for the application
-    docker_network:
-      name: php_example_net
+    - name: Ensure hackercompany group exists
+      group:
+        name: hackercompany
 
-  - name: Start the db container
-    docker_container:
-      name: db
-      image: mysql:5.7
-      env:
-        MYSQL_ROOT_PASSWORD: example
-        MYSQL_DATABASE: example
-        MYSQL_USER: example
-        MYSQL_PASSWORD: example
-      networks:
-        - name: php_example_net
-      state: started
+    - name: Add hackerboard to hackercompany group
+      user:
+        name: hackerboard
+        groups: hackercompany
+        append: yes
 
-  - name: Start the web container
-    docker_container:
-      name: web
-      image: problemsetters/801133-ansible
-      ports:
-        - "8000:80"
-      networks:
-        - name: php_example_net
-      state: started
+    - name: Set facts from environment variables
+      set_fact:
+        hackerboard_dir: "{{ lookup('env', 'HACKERBOARD_DIR') }}"
+        access_key: "{{ lookup('env', 'HACKERBOARD_ACCESS_KEY') }}"
+
+    - name: Create target directory if it does not exist
+      file:
+        path: "{{ hackerboard_dir }}"
+        state: directory
+        owner: hackerboard
+        group: hackercompany
+        mode: '0750'
+
+    - name: Deploy credentials.ini using template
+      template:
+        src: credentials.ini.j2
+        dest: "{{ hackerboard_dir }}/credentials.ini"
+        owner: hackerboard
+        group: hackercompany
+        mode: '0640'
